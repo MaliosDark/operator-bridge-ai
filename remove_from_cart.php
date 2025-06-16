@@ -1,21 +1,25 @@
 <?php
-require_once 'config.php';
-require_once 'auth.php';
-require_once 'logger.php';
+require_once 'common.php';
 
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    errorResponse(405, 'method_not_allowed', 'POST required');
+}
 if (!isAuthorized()) {
-    http_response_code(403);
-    exit(json_encode(['error'=>'Unauthorized']));
+    errorResponse(403, 'unauthorized', 'Invalid access key');
 }
 
-$cart_id = filter_var($_GET['cart_id'] ?? 0, FILTER_VALIDATE_INT);
+$body   = json_decode(file_get_contents('php://input'), true);
+$cart_id= filter_var($body['cart_id'] ?? 0, FILTER_VALIDATE_INT);
 if (!$cart_id) {
-    http_response_code(400);
-    exit(json_encode(['error'=>'cart_id required']));
+    errorResponse(400, 'invalid_parameters', 'cart_id is required');
 }
 
-$stmt = $pdo->prepare("DELETE FROM carts WHERE id = ?");
-$success = $stmt->execute([$cart_id]);
+$del = $pdo->prepare("DELETE FROM carts WHERE id = ?");
+$ok  = $del->execute([$cart_id]);
+log_action(__FILE__, ['cart_id'=>$cart_id,'result'=>$ok]);
 
-header('Content-Type: application/json');
-echo json_encode(['success'=>(bool)$success]);
+if (!$ok) {
+    errorResponse(500, 'db_error', 'Failed to remove from cart');
+}
+
+successResponse();

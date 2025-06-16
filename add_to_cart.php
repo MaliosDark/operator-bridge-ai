@@ -1,29 +1,39 @@
 <?php
-require_once 'config.php';
-require_once 'auth.php';
-require_once 'logger.php';
+require_once 'common.php';
 
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    errorResponse(405, 'method_not_allowed', 'POST required');
+}
 if (!isAuthorized()) {
-    http_response_code(403);
-    exit(json_encode(['error'=>'Unauthorized']));
+    errorResponse(403, 'unauthorized', 'Invalid access key');
 }
 
-$user_id = filter_var($_GET['user_id'] ?? 0, FILTER_VALIDATE_INT);
-$item_id = filter_var($_GET['item_id'] ?? 0, FILTER_VALIDATE_INT);
-$qty     = filter_var($_GET['quantity'] ?? 1, FILTER_VALIDATE_INT);
+$body = json_decode(file_get_contents('php://input'), true);
+$user_id = filter_var($body['user_id'] ?? 0, FILTER_VALIDATE_INT);
+$item_id = filter_var($body['item_id'] ?? 0, FILTER_VALIDATE_INT);
+$quantity= filter_var($body['quantity'] ?? 1, FILTER_VALIDATE_INT);
 
 if (!$user_id || !$item_id) {
-    http_response_code(400);
-    exit(json_encode(['error'=>'user_id & item_id required']));
+    errorResponse(400, 'invalid_parameters', 'user_id and item_id are required');
 }
 
-$stmt = $pdo->prepare("
-  INSERT INTO carts (user_id, module_id, item_id, quantity, created_at, updated_at)
-  VALUES (?, ?, ?, ?, NOW(), NOW())
-");
-// You may need to fetch module_id from items table first:
-$mod = $pdo->query("SELECT module_id FROM items WHERE id=$item_id")->fetchColumn();
-$success = $stmt->execute([$user_id, $mod, $item_id, $qty]);
+// fetch module_id from items table
+$stmt = $pdo->prepare("SELECT module_id FROM items WHERE id = ?");
+$stmt->execute([$item_id]);
+$module_id = $stmt->fetchColumn();
+if (!$module_id) {
+    errorResponse(404, 'item_not_found', 'Item does not exist');
+}
 
-header('Content-Type: application/json');
-echo json_encode(['success'=>(bool)$success]);
+$ins = $pdo->prepare("
+    INSERT INTO carts (user_id, module_id, item_id, quantity, created_at, updated_at)
+    VALUES (?, ?, ?, ?, NOW(), NOW())
+");
+$ok = $ins->execute([$user_id, $module_id, $item_id, $quantity]);
+log_action(__FILE__, ['user_id'=>$user_id,'item_id'=>$item_id,'quantity'=>$quantity,'result'=>$ok]);
+
+if (!$ok) {
+    errorResponse(500, 'db_error', 'Failed to add to cart');
+}
+
+successResponse();

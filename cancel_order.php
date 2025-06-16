@@ -1,26 +1,33 @@
 <?php
-require_once 'config.php';
-require_once 'auth.php';
-require_once 'logger.php';
+require_once 'common.php';
 
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    errorResponse(405, 'method_not_allowed', 'POST required');
+}
 if (!isAuthorized()) {
-    http_response_code(403);
-    exit(json_encode(['error'=>'Unauthorized']));
+    errorResponse(403, 'unauthorized', 'Invalid access key');
 }
 
-$order_id = filter_var($_GET['order_id']??0, FILTER_VALIDATE_INT);
-$reason   = filter_var($_GET['reason']??'', FILTER_SANITIZE_STRING);
-if (!$order_id || !$reason) {
-    http_response_code(400);
-    exit(json_encode(['error'=>'order_id & reason required']));
+$body    = json_decode(file_get_contents('php://input'), true);
+$order_id= filter_var($body['order_id'] ?? 0, FILTER_VALIDATE_INT);
+$reason  = trim($body['reason'] ?? '');
+
+if (!$order_id || $reason === '') {
+    errorResponse(400, 'invalid_parameters', 'order_id and reason are required');
 }
 
-$stmt = $pdo->prepare("
-  UPDATE orders 
-  SET order_status = 'canceled', cancellation_reason = ?, updated_at = NOW()
-  WHERE id = ?
+$upd = $pdo->prepare("
+    UPDATE orders
+    SET order_status = 'canceled',
+        cancellation_reason = ?,
+        updated_at = NOW()
+    WHERE id = ?
 ");
-$success = $stmt->execute([$reason,$order_id]);
+$ok  = $upd->execute([$reason, $order_id]);
+log_action(__FILE__, ['order_id'=>$order_id,'reason'=>$reason,'result'=>$ok]);
 
-header('Content-Type: application/json');
-echo json_encode(['success'=>(bool)$success]);
+if (!$ok) {
+    errorResponse(500, 'db_error', 'Failed to cancel order');
+}
+
+successResponse();

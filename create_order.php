@@ -1,52 +1,50 @@
 <?php
-require_once 'config.php';
-require_once 'auth.php';
-require_once 'logger.php';
+require_once 'common.php';
 
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    errorResponse(405, 'method_not_allowed', 'POST required');
+}
 if (!isAuthorized()) {
-    http_response_code(403);
-    exit(json_encode(['error'=>'Unauthorized']));
+    errorResponse(403, 'unauthorized', 'Invalid access key');
 }
 
 $data = json_decode(file_get_contents('php://input'), true);
 log_action(__FILE__, ['body'=>$data]);
 
-// Minimal required fields
-$req = ['user_id','items','delivery_address','payment_method'];
-foreach ($req as $f) {
+// required
+foreach (['user_id','items','delivery_address','payment_method'] as $f) {
     if (empty($data[$f])) {
-        http_response_code(400);
-        exit(json_encode(['error'=>"$f required"]));
+        errorResponse(400, 'invalid_parameters', "$f is required");
     }
 }
 
-// 1) Insert basic order
-$stmt = $pdo->prepare("
-  INSERT INTO orders 
-    (user_id, delivery_address, payment_method, order_status, created_at, updated_at)
-  VALUES (?, ?, ?, 'pending', NOW(), NOW())
+$insertOrder = $pdo->prepare("
+    INSERT INTO orders
+      (user_id, delivery_address, payment_method, order_status, created_at, updated_at)
+    VALUES (?, ?, ?, 'pending', NOW(), NOW())
 ");
-$stmt->execute([
-  $data['user_id'],
-  $data['delivery_address'],
-  $data['payment_method']
+$insertOrder->execute([
+    $data['user_id'],
+    $data['delivery_address'],
+    $data['payment_method']
 ]);
 $order_id = $pdo->lastInsertId();
 
-// 2) Insert order_details for each item
-$detailStmt = $pdo->prepare("
-  INSERT INTO order_details 
-    (order_id, item_id, price, quantity, created_at, updated_at)
-  VALUES (?, ?, ?, ?, NOW(), NOW())
+$insertDetail = $pdo->prepare("
+    INSERT INTO order_details
+      (order_id, item_id, price, quantity, created_at, updated_at)
+    VALUES (?, ?, ?, ?, NOW(), NOW())
 ");
 foreach ($data['items'] as $it) {
-    $detailStmt->execute([
-      $order_id,
-      $it['item_id'],
-      $it['price'],
-      $it['quantity']
+    if (!isset($it['item_id'],$it['price'],$it['quantity'])) {
+        errorResponse(400, 'invalid_parameters', 'Each item needs item_id, price & quantity');
+    }
+    $insertDetail->execute([
+        $order_id,
+        $it['item_id'],
+        $it['price'],
+        $it['quantity']
     ]);
 }
 
-header('Content-Type: application/json');
-echo json_encode(['success'=>true,'order_id'=>$order_id]);
+successResponse(['order_id' => (int)$order_id]);

@@ -1,26 +1,27 @@
 <?php
-require_once 'config.php';
-require_once 'auth.php';
-require_once 'logger.php';
+require_once 'common.php';
 
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    errorResponse(405, 'method_not_allowed', 'POST required');
+}
 if (!isAuthorized()) {
-    http_response_code(403);
-    exit(json_encode(['error'=>'Unauthorized']));
+    errorResponse(403, 'unauthorized', 'Invalid access key');
 }
 
-$admin_id = filter_var($_GET['admin_id']??0, FILTER_VALIDATE_INT);
-$role_id  = filter_var($_GET['role_id'] ??0, FILTER_VALIDATE_INT);
+$body     = json_decode(file_get_contents('php://input'), true);
+$admin_id = filter_var($body['admin_id'] ?? 0, FILTER_VALIDATE_INT);
+$role_id  = filter_var($body['role_id']  ?? 0, FILTER_VALIDATE_INT);
+
 if (!$admin_id || !$role_id) {
-    http_response_code(400);
-    exit(json_encode(['error'=>'admin_id & role_id required']));
+    errorResponse(400, 'invalid_parameters', 'admin_id and role_id are required');
 }
 
-$stmt = $pdo->prepare("
-  UPDATE admins 
-  SET role_id = ? 
-  WHERE id = ?
-");
-$success = $stmt->execute([$role_id,$admin_id]);
+$upd = $pdo->prepare("UPDATE admins SET role_id = ? WHERE id = ?");
+$ok  = $upd->execute([$role_id, $admin_id]);
+log_action(__FILE__, ['admin_id'=>$admin_id,'role_id'=>$role_id,'result'=>$ok]);
 
-header('Content-Type: application/json');
-echo json_encode(['success'=>(bool)$success]);
+if (!$ok) {
+    errorResponse(500, 'db_error', 'Failed to assign role');
+}
+
+successResponse();
