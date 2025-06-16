@@ -1,6 +1,6 @@
 <?php
-require_once 'config.php';
-require_once 'logger.php';
+require_once __DIR__ . '/common.php';
+
 
 log_action(__FILE__, ['params'=>$_GET]);
 

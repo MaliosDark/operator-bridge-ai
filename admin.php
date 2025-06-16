@@ -1,6 +1,6 @@
 <?php
-require_once 'config.php';
-require_once 'logger.php';
+require_once __DIR__ . '/common.php';
+
 
 // Protect dashboard with ACCESS_KEY
 if (!isset($_GET['key']) || $_GET['key'] !== ACCESS_KEY) {

@@ -1,6 +1,6 @@
 <?php
-require_once 'config.php';
-require_once 'logger.php';
+require_once __DIR__ . '/common.php';
+
 
 // CONFIG: your alert email
 define('ALERT_EMAIL', 'you@yourdomain.com');

@@ -1,6 +1,6 @@
 <?php
-require_once 'config.php';
-require_once 'logger.php';
+require_once __DIR__ . '/common.php';
+
 
 // Protect with key
 log_action(__FILE__, ['action'=>'get_full_schema']);

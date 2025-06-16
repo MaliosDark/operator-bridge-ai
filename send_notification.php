@@ -1,7 +1,7 @@
 <?php
-require_once 'config.php';
+require_once __DIR__ . '/common.php';
 require_once 'auth.php';
-require_once 'logger.php';
+
 
 if (!isAuthorized()) {
     http_response_code(403);

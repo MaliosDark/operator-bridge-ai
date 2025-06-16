@@ -1,6 +1,6 @@
 <?php
-require_once 'config.php';
-require_once 'logger.php';
+require_once __DIR__ . '/common.php';
+
 
 // Only POST + valid key
 if ($_SERVER['REQUEST_METHOD']!=='POST' || ($_GET['key']??'')!==ACCESS_KEY) {
