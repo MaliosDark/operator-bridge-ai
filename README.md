@@ -60,6 +60,34 @@ flowchart LR
 
 ---
 
+## Pagination
+
+```
+Usage examples:
+
+GET /get_orders.php?key=YOUR_KEY&page=2&per_page=10
+GET /get_items.php?key=YOUR_KEY&module_id=3&store_id=5&page=1&per_page=50
+
+```
+
+## Pagination Response:
+```
+{
+  "success": true,
+  "data": [ /* your rows */ ],
+  "pagination": {
+    "page": 1,
+    "per_page": 20,
+    "total": 137,
+    "total_pages": 7
+  }
+}
+
+
+```
+
+---
+
 ## 🔧 Example Endpoints
 
 All calls require `?key=YOUR_ACCESS_KEY` (or header `X-Access-Key: YOUR_ACCESS_KEY`).
