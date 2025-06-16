@@ -2,21 +2,23 @@
 require_once 'config.php';
 require_once 'logger.php';
 
-// Only accept POST + correct key
-if ($_SERVER['REQUEST_METHOD'] !== 'POST' || ($_GET['key'] ?? '') !== ACCESS_KEY) {
+// Only POST + valid key
+if ($_SERVER['REQUEST_METHOD']!=='POST' || ($_GET['key']??'')!==ACCESS_KEY) {
     http_response_code(403);
-    echo json_encode(['error' => 'Forbidden']);
-    exit;
+    exit(json_encode(['error'=>'Forbidden']));
 }
 
 $payload = json_decode(file_get_contents('php://input'), true);
-log_action(__FILE__, ['webhook_payload' => $payload]);
+log_action(__FILE__, ['webhook_payload'=>$payload]);
 
-// Example: if Laravel notifies "order_created", call an AI routine or queue
-if (!empty($payload['event']) && $payload['event'] === 'order_created') {
-    // e.g. trigger your AI client via shell or HTTP call
-    // shell_exec("php /path/to/your_ai_client.php new_order ".$payload['data']['order_id']);
+// Example: Laravel emits order_created
+if (!empty($payload['event']) && $payload['event']==='order_created') {
+    $orderId = intval($payload['data']['order_id'] ?? 0);
+    if ($orderId) {
+        // e.g. notify AI client:
+        // shell_exec("php /path/to/ai_client.php new_order $orderId");
+    }
 }
 
 header('Content-Type: application/json');
-echo json_encode(['received' => true]);
+echo json_encode(['received'=>true]);
