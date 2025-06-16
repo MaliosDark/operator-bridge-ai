@@ -93,6 +93,15 @@ It is ideal for systems where **Laravel is hosted remotely**, and you want an ex
 
 ---
 
+## Cron setup example (on your server crontab):
+
+
+```
+*/5 * * * * php /path/to/ai_operator/health_check.php > /dev/null 2>&1
+```
+
+---
+
 ## 📁 Included Files
 
 | File                     | Purpose                                   |

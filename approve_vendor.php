@@ -1,14 +1,19 @@
 <?php
-include 'config.php';
+require_once 'config.php';
+require_once 'logger.php';
 
-$vendor_id = $_GET['vendor_id'] ?? '';
+log_action(__FILE__, ['params' => $_GET]);
+
+$vendor_id = filter_var($_GET['vendor_id'] ?? '', FILTER_VALIDATE_INT);
 if (!$vendor_id) {
-    echo json_encode(["error" => "Missing vendor_id"]);
+    http_response_code(400);
+    echo json_encode(['error' => 'vendor_id required']);
     exit;
 }
 
 $stmt = $pdo->prepare("UPDATE stores SET status = 'approved' WHERE id = ?");
 $success = $stmt->execute([$vendor_id]);
 
-echo json_encode(["success" => $success]);
+header('Content-Type: application/json');
+echo json_encode(['success' => (bool)$success]);
 ?>

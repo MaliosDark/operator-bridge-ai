@@ -1,17 +1,17 @@
-# Allow access to PHP files only
+# Allow only .php files
 <FilesMatch "\.php$">
     Require all granted
 </FilesMatch>
 
-# Deny access to sensitive file types
+# Deny access to sensitive types
 <FilesMatch "\.(txt|log|json|md|env|bak|sql)$">
     Require all denied
 </FilesMatch>
 
-# Disable directory listing
+# Disable directory browsing
 Options -Indexes
 
-# Force HTTPS connection
+# Force HTTPS
 RewriteEngine On
 RewriteCond %{HTTPS} off
 RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
