@@ -1,5 +1,5 @@
 <?php
-require_once 'common.php';
+require_once __DIR__ . '/common.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     errorResponse(405, 'method_not_allowed', 'POST required');
